@@ -15,6 +15,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module   RdrHsSyn (
         mkHsOpApp,
@@ -90,6 +91,7 @@ module   RdrHsSyn (
 
         -- Expression/command ambiguity resolution
         PV,
+        runPV,
         ExpCmdP(ExpCmdP, runExpCmdP),
         ExpCmdI(..),
         ecFromExp,
@@ -1004,10 +1006,10 @@ checkTyClHdr is_cls ty
 
 -- | Yield a parse error if we have a function applied directly to a do block
 -- etc. and BlockArguments is not enabled.
-checkBlockArguments :: forall b. ExpCmdI b => Located (b GhcPs) -> PV ()
+checkBlockArguments :: forall b m. (ExpCmdI b, MonadP m) => Located (b GhcPs) -> m ()
 checkBlockArguments = case expCmdG @b of { ExpG -> checkExpr; CmdG -> checkCmd }
   where
-    checkExpr :: LHsExpr GhcPs -> P ()
+    checkExpr :: LHsExpr GhcPs -> m ()
     checkExpr expr = case unLoc expr of
       HsDo _ DoExpr _ -> check "do block" expr
       HsDo _ MDoExpr _ -> check "mdo block" expr
@@ -1019,7 +1021,7 @@ checkBlockArguments = case expCmdG @b of { ExpG -> checkExpr; CmdG -> checkCmd }
       HsProc {} -> check "proc expression" expr
       _ -> return ()
 
-    checkCmd :: LHsCmd GhcPs -> P ()
+    checkCmd :: LHsCmd GhcPs -> m ()
     checkCmd cmd = case unLoc cmd of
       HsCmdLam {} -> check "lambda command" cmd
       HsCmdCase {} -> check "case command" cmd
@@ -1028,7 +1030,7 @@ checkBlockArguments = case expCmdG @b of { ExpG -> checkExpr; CmdG -> checkCmd }
       HsCmdDo {} -> check "do command" cmd
       _ -> return ()
 
-    check :: (HasSrcSpan a, Outputable a) => String -> a -> P ()
+    check :: (HasSrcSpan a, Outputable a) => String -> a -> m ()
     check element a = do
       blockArguments <- getBit BlockArgumentsBit
       unless blockArguments $
@@ -1316,21 +1318,21 @@ checkValSigLhs lhs@(dL->L l _)
     pattern_RDR = mkUnqual varName (fsLit "pattern")
 
 checkDoAndIfThenElse
-  :: forall b. ExpCmdI b =>
+  :: forall b m. (ExpCmdI b, MonadP m) =>
      LHsExpr GhcPs
   -> Bool
   -> Located (b GhcPs)
   -> Bool
   -> Located (b GhcPs)
-  -> P ()
+  -> m ()
 checkDoAndIfThenElse =
   case expCmdG @b of
     ExpG -> checkDoAndIfThenElse'
     CmdG -> checkDoAndIfThenElse'
 
 checkDoAndIfThenElse'
-  :: (HasSrcSpan a, Outputable a, Outputable b, HasSrcSpan c, Outputable c)
-  => a -> Bool -> b -> Bool -> c -> P ()
+  :: (HasSrcSpan a, Outputable a, Outputable b, HasSrcSpan c, Outputable c, MonadP m)
+  => a -> Bool -> b -> Bool -> c -> m ()
 checkDoAndIfThenElse' guardExpr semiThen thenExpr semiElse elseExpr
  | semiThen || semiElse
     = do doAndIfThenElse <- getBit DoAndIfThenElseBit
@@ -1939,7 +1941,7 @@ ecFromCmd c@(getLoc -> l) = ExpCmdP onB
   where
     onB :: forall b. ExpCmdI b => PV (Located (b GhcPs))
     onB = case expCmdG @b of { ExpG -> onExp; CmdG -> return c }
-    onExp :: P (LHsExpr GhcPs)
+    onExp :: PV (LHsExpr GhcPs)
     onExp = do
       addError l $ vcat
         [ text "Arrow command found where an expression was expected:",
@@ -1951,7 +1953,7 @@ ecFromExp e@(getLoc -> l) = ExpCmdP onB
   where
     onB :: forall b. ExpCmdI b => PV (Located (b GhcPs))
     onB = case expCmdG @b of { ExpG -> return e; CmdG -> onCmd }
-    onCmd :: P (LHsCmd GhcPs)
+    onCmd :: PV (LHsCmd GhcPs)
     onCmd =
       addFatalError l $
         text "Parse error in command:" <+> ppr e
@@ -2676,7 +2678,22 @@ failOpStrictnessPosition (dL->L loc _) = addFatalError loc msg
 -----------------------------------------------------------------------------
 -- Misc utils
 
-type PV = P -- See Note [Parser-Validator]
+-- See Note [Parser-Validator]
+newtype PV a = PV (P a)
+  deriving (Functor, Applicative, Monad)
+
+runPV :: PV a -> P a
+runPV (PV m) = m
+
+instance MonadP PV where
+  addError srcspan msg =
+    PV $ addError srcspan msg
+  addFatalError srcspan msg =
+    PV $ addFatalError srcspan msg
+  getBit ext =
+    PV $ getBit ext
+  addAnnsAt loc anns =
+    PV $ addAnnsAt loc anns
 
 {- Note [Parser-Validator]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
