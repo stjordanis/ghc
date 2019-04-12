@@ -1520,12 +1520,25 @@ bool nonmovingIsAlive (StgClosure *p)
         struct NonmovingSegment *seg = nonmovingGetSegment((StgPtr) p);
         nonmoving_block_idx i = nonmovingGetBlockIdx((StgPtr) p);
         if (i >= seg->next_free_snap) {
-            // If the object is allocated after next_free_snap then it must have
-            // been allocated after we took the snapshot and consequently we
-            // have no guarantee that it is marked, even if it is still reachable.
-            // This is because the snapshot invariant only guarantees that things in
-            // the nonmoving heap at the time that the snapshot is taken are marked.
-            return true;
+            // If the object is allocated after next_free_snap then one of the
+            // following must be true:
+            //
+            // * if its mark is 0 then the block was not allocated last time
+            //   the segment was swept; however, it may have been allocated since
+            //   then and therefore we must conclude that the block is alive.
+            //
+            // * if its mark is equal to nonmovingMarkEpoch then we found that
+            //   the object was alive in the last snapshot. Consequently we must
+            //   conclude that the object is still alive.
+            //
+            // * if its mark is not equal to nonmovingMarkEpoch then we found
+            //   that the object was not reachable in the last snapshot.
+            //   Assuming that the mark is complete we can conclude that the
+            //   object is dead since the snapshot invariant guarantees that
+            //   all objects alive in the snapshot would be marked.
+            //
+            uint8_t mark =  nonmovingGetMark(seg, i);
+            return mark == nonmovingMarkEpoch || mark == 0;
         } else {
             return nonmovingClosureMarkedThisCycle((P_)p);
         }
