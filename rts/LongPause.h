@@ -19,7 +19,6 @@ void longPauseCb (uint64_t dur_ns);
 
 #if defined(THREADED_RTS)
 
-#include <pthread.h>
 #include <time.h>
 
 struct long_pause_ctx {
