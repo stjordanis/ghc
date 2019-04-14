@@ -358,6 +358,7 @@ scavengeNonmovingSegment(struct NonmovingSegment *seg)
         // bit not set = new allocation, so scavenge
         if (nonmovingGetMark(seg, p_idx) == 0) {
             nonmovingScavengeOne(p);
+            gct->copied += blk_size;
         }
 
         p_idx++;
