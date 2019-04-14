@@ -1498,6 +1498,8 @@ nonmovingMark (MarkQueue *queue)
 // - Resurrecting threads; checking if a thread is dead.
 // - Sweeping object lists: large_objects, mut_list, stable_name_table.
 //
+// Note that this must be used only after mark has finished but before
+// nonmovingSweep so that the segment snapshot pointers are still valid.
 bool nonmovingIsAlive (StgClosure *p)
 {
     // Ignore static closures. See comments in `isAlive`.
