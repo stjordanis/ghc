@@ -554,7 +554,6 @@ static void* nonmovingConcurrentMark(void *data)
     nonmovingMark_(mark_queue, &dead_weaks, &resurrected_threads);
     return NULL;
 }
-#endif
 
 // TODO: Not sure where to put this function.
 // Append w2 to the end of w1.
@@ -565,6 +564,7 @@ static void appendWeakList( StgWeak **w1, StgWeak *w2 )
     }
     *w1 = w2;
 }
+#endif
 
 static void nonmovingMark_(MarkQueue *mark_queue, StgWeak **dead_weaks, StgTSO **resurrected_threads)
 {
