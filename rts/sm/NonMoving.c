@@ -128,15 +128,12 @@ static unsigned int countHeapBlocks(struct NonmovingHeap *heap)
 void nonmovingPushFreeSegment(struct NonmovingSegment *seg)
 {
     bdescr *bd = Bdescr((StgPtr) seg);
-    // See Note [Live data accounting in nonmoving collector].
-    ACQUIRE_SPIN_LOCK(&gc_alloc_block_sync);
-    ASSERT(oldest_gen->n_blocks >= bd->blocks);
-    oldest_gen->n_blocks -= bd->blocks;
-    oldest_gen->n_words  -= BLOCK_SIZE_W * bd->blocks;
-    RELEASE_SPIN_LOCK(&gc_alloc_block_sync);
 
+    // See Note [Live data accounting in nonmoving collector].
     if (nonmovingHeap.n_free > NONMOVING_MAX_FREE) {
         ACQUIRE_SM_LOCK;
+        oldest_gen->n_blocks -= bd->blocks;
+        oldest_gen->n_words  -= BLOCK_SIZE_W * bd->blocks;
         freeGroup(Bdescr((StgPtr) seg));
         RELEASE_SM_LOCK;
         return;
