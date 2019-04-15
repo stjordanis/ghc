@@ -831,6 +831,12 @@ void traceConcUpdRemSetFlush(Capability *cap)
         postConcUpdRemSetFlush(cap);
 }
 
+void traceNonmovingHeapCensus(uint32_t blk_size,
+                              const struct NonmovingAllocCensus *census)
+{
+    if (eventlog_enabled)
+        postNonmovingHeapCensus(blk_size, census);
+}
 
 void traceThreadStatus_ (StgTSO *tso USED_IF_DEBUG)
 {

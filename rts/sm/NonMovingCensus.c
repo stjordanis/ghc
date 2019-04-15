@@ -109,3 +109,13 @@ void nonmovingPrintAllocatorCensus()
                    occupancy);
     }
 }
+
+void nonmovingTraceAllocatorCensus()
+{
+    for (int i=0; i < NONMOVING_ALLOCA_CNT; i++) {
+        const struct NonmovingAllocCensus census =
+            nonmovingAllocatorCensus(nonmovingHeap.allocators[i]);
+        const uint32_t blk_size = 1 << (i + NONMOVING_ALLOCA0);
+        traceNonmovingHeapCensus(blk_size, &census);
+    }
+}

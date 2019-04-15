@@ -9,6 +9,7 @@
 #pragma once
 
 #include "rts/EventLogFormat.h"
+#include "sm/NonMovingCensus.h"
 #include "Capability.h"
 
 #if defined(DTRACE)
@@ -308,6 +309,7 @@ void traceConcSyncEnd(void);
 void traceConcSweepBegin(void);
 void traceConcSweepEnd(void);
 void traceConcUpdRemSetFlush(Capability *cap);
+void traceNonmovingHeapCensus(uint32_t blk_size, const struct NonmovingAllocCensus *census);
 
 void flushTrace(void);
 
@@ -354,6 +356,7 @@ void flushTrace(void);
 #define traceConcSweepBegin() /* nothing */
 #define traceConcSweepEnd() /* nothing */
 #define traceConcUpdRemSetFlush(cap) /* nothing */
+#define traceConcHeapCensus(cap, blk_size, census) /* nothing */
 
 #define flushTrace() /* nothing */
 
