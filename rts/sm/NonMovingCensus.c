@@ -90,6 +90,9 @@ nonmovingAllocatorCensus(struct NonmovingAllocator *alloc)
 
 void nonmovingPrintAllocatorCensus()
 {
+    if (!RtsFlags.GcFlags.useNonmoving)
+        return;
+
     for (int i=0; i < NONMOVING_ALLOCA_CNT; i++) {
         struct NonmovingAllocCensus census =
             nonmovingAllocatorCensus(nonmovingHeap.allocators[i]);
@@ -112,6 +115,9 @@ void nonmovingPrintAllocatorCensus()
 
 void nonmovingTraceAllocatorCensus()
 {
+    if (!RtsFlags.GcFlags.useNonmoving)
+        return;
+
     for (int i=0; i < NONMOVING_ALLOCA_CNT; i++) {
         const struct NonmovingAllocCensus census =
             nonmovingAllocatorCensus(nonmovingHeap.allocators[i]);
