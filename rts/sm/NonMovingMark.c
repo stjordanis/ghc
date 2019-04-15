@@ -1526,6 +1526,7 @@ bool nonmovingIsAlive (StgClosure *p)
     } else {
         struct NonmovingSegment *seg = nonmovingGetSegment((StgPtr) p);
         nonmoving_block_idx i = nonmovingGetBlockIdx((StgPtr) p);
+        uint8_t mark =  nonmovingGetMark(seg, i);
         if (i >= seg->next_free_snap) {
             // If the object is allocated after next_free_snap then one of the
             // following must be true:
@@ -1544,10 +1545,10 @@ bool nonmovingIsAlive (StgClosure *p)
             //   object is dead since the snapshot invariant guarantees that
             //   all objects alive in the snapshot would be marked.
             //
-            uint8_t mark =  nonmovingGetMark(seg, i);
             return mark == nonmovingMarkEpoch || mark == 0;
         } else {
-            return nonmovingClosureMarkedThisCycle((P_)p);
+            ASSERT(mark != 0);
+            return mark == nonmovingMarkEpoch;
         }
     }
 }
