@@ -108,13 +108,17 @@ stageLibPath stage = buildRoot <&> (-/- stageString stage -/- "lib")
 
 -- | Files the GHC binary depends on.
 ghcDeps :: Stage -> Action [FilePath]
-ghcDeps stage = mapM (\f -> stageLibPath stage <&> (-/- f))
-    [ "ghc-usage.txt"
-    , "ghci-usage.txt"
-    , "llvm-targets"
-    , "llvm-passes"
-    , "platformConstants"
-    , "settings" ]
+ghcDeps stage = do
+    root    <- buildRoot
+    libDeps <- mapM (\f -> stageLibPath stage <&> (-/- f))
+        [ "ghc-usage.txt"
+        , "ghci-usage.txt"
+        , "llvm-targets"
+        , "llvm-passes"
+        , "platformConstants"
+        , "settings" ]
+    return $ libDeps
+          ++ [ root -/- ("ghc-" ++ stageString stage) | stage > Stage0 ]
 
 includesDependencies :: Action [FilePath]
 includesDependencies = do
