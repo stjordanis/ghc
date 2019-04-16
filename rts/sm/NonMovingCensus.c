@@ -121,7 +121,7 @@ void nonmovingTraceAllocatorCensus()
     for (int i=0; i < NONMOVING_ALLOCA_CNT; i++) {
         const struct NonmovingAllocCensus census =
             nonmovingAllocatorCensus(nonmovingHeap.allocators[i]);
-        const uint32_t blk_size = 1 << (i + NONMOVING_ALLOCA0);
-        traceNonmovingHeapCensus(blk_size, &census);
+        const uint32_t log_blk_size = i + NONMOVING_ALLOCA0;
+        traceNonmovingHeapCensus(log_blk_size, &census);
     }
 }
